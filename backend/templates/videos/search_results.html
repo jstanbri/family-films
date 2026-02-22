@@ -1,0 +1,20 @@
+{% if videos %}
+<div class="card-grid" style="margin-top:1rem;">
+  {% for v in videos %}
+  <div class="video-card" id="video-{{ v.id }}">
+    <h3><a href="/videos/{{ v.id }}">{{ v.title }}</a></h3>
+    <div class="meta">
+      {% if v.date_filmed %}📅 {{ v.date_filmed }}&ensp;{% endif %}
+      {% if v.place %}📍 {{ v.place }}&ensp;{% endif %}
+      {% if v.reel_number %}🎞 Reel {{ v.reel_number }}{% endif %}
+    </div>
+    {% if v.description %}
+    <p style="font-size:0.88rem; margin:0.4rem 0 0;">{{ v.description | truncate(80) }}</p>
+    {% endif %}
+    <a class="watch" href="/videos/{{ v.id }}">▶ Watch</a>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p style="margin-top:1rem;"><em>No films found.</em></p>
+{% endif %}

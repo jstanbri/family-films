@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}{{ video.title }} — Family Films{% endblock %}
+{% block content %}
+<a href="/videos">← Back to films</a>
+<h1 style="margin-top:0.5rem;">{{ video.title }}</h1>
+
+<div style="max-width:900px;">
+  <video controls preload="metadata">
+    <source src="/videos/{{ video.id }}/stream" type="video/mp4">
+    Your browser does not support video playback.
+  </video>
+</div>
+
+<div style="max-width:900px; margin-top:1rem; display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
+  <div>
+    <h3>Details</h3>
+    <table>
+      <tbody>
+        {% if video.date_filmed %}
+        <tr><th>Filmed</th><td>{{ video.date_filmed }}</td></tr>
+        {% endif %}
+        {% if video.place %}
+        <tr><th>Place</th><td>{{ video.place }}</td></tr>
+        {% endif %}
+        {% if video.reel_number %}
+        <tr><th>Reel</th><td>{{ video.reel_number }}</td></tr>
+        {% endif %}
+        {% if video.digitised_by %}
+        <tr><th>Digitised by</th><td>{{ video.digitised_by }}</td></tr>
+        {% endif %}
+        {% if video.file_size %}
+        <tr><th>File size</th><td>{{ (video.file_size / 1048576) | round(1) }} MB</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+    {% if video.description %}
+    <p>{{ video.description }}</p>
+    {% endif %}
+  </div>
+
+  <div>
+    <h3>People in this film</h3>
+    {% if people %}
+      {% for p in people %}
+      <a href="/people/{{ p.id }}" class="tag">{{ p.name }}{% if p.relationship %} ({{ p.relationship }}){% endif %}</a>
+      {% endfor %}
+    {% else %}
+      <p><em>No people tagged.</em></p>
+    {% endif %}
+  </div>
+</div>
+
+<div style="margin-top:2rem;">
+  <button class="delete-btn"
+          hx-delete="/videos/{{ video.id }}"
+          hx-confirm="Delete '{{ video.title }}' permanently? The file will also be removed."
+          hx-target="body"
+          style="background:var(--pico-del-color,#c0392b); border-color:var(--pico-del-color,#c0392b);">
+    🗑 Delete this film
+  </button>
+</div>
+{% endblock %}

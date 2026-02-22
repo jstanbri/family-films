@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-films}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-films}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-films} -d ${POSTGRES_DB:-family_films}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-films}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-films}
+      VIDEOS_DIR: /app/videos
+      MIGRATIONS_DIR: /app/migrations
+      BIND_ADDR: 0.0.0.0:3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - video_data:/app/videos
+
+volumes:
+  postgres_data:
+  video_data:

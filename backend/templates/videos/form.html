@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Upload Film — Family Films{% endblock %}
+{% block content %}
+<a href="/videos">← Back to films</a>
+<h1 style="margin-top:0.5rem;">Upload a Film</h1>
+
+<form action="/videos/upload" method="post" enctype="multipart/form-data" style="max-width:640px;">
+
+  <label>
+    Video File <small>(mp4, mov, avi, webm)</small>
+    <input type="file" name="file" accept="video/*" required>
+  </label>
+
+  <label>
+    Title *
+    <input type="text" name="title" required placeholder="e.g. Summer holiday 1968">
+  </label>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+    <label>
+      Date Filmed
+      <input type="date" name="date_filmed">
+    </label>
+    <label>
+      Reel / Tape Number
+      <input type="text" name="reel_number" placeholder="e.g. R3 or Tape 2">
+    </label>
+  </div>
+
+  <label>
+    Place
+    <input type="text" name="place" placeholder="e.g. Blackpool, Lancashire">
+  </label>
+
+  <label>
+    Description
+    <textarea name="description" rows="3" placeholder="What happens in this film…"></textarea>
+  </label>
+
+  <label>
+    Digitised by
+    <input type="text" name="digitised_by" placeholder="Who converted the film">
+  </label>
+
+  <fieldset>
+    <legend>People in this film</legend>
+    <input type="search" placeholder="Search people…"
+           hx-get="/people/search"
+           hx-trigger="input changed delay:300ms"
+           hx-target="#people-results">
+    <div id="people-results" style="margin-top:0.5rem;">
+      {% for p in all_people %}
+      <label style="display:flex; gap:0.5rem; align-items:center; margin-bottom:0.3rem;">
+        <input type="checkbox" name="person_ids" value="{{ p.id }}">
+        {{ p.name }}{% if p.relationship %} <span class="tag">{{ p.relationship }}</span>{% endif %}
+      </label>
+      {% endfor %}
+    </div>
+    <small><a href="/people/new" target="_blank">+ Add a new person</a></small>
+  </fieldset>
+
+  <button type="submit">Upload Film</button>
+</form>
+{% endblock %}

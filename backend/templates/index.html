@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Family Films{% endblock %}
+{% block content %}
+<h1>Family Films Archive</h1>
+<p>
+  <strong>{{ video_count }}</strong> film{% if video_count != 1 %}s{% endif %} archived &nbsp;·&nbsp;
+  <strong>{{ people_count }}</strong> {{ "person" if people_count == 1 else "people" }} recorded
+</p>
+
+<p>
+  <a href="/videos/upload" role="button">Upload a Film</a>
+  &nbsp;
+  <a href="/videos" role="button" class="secondary">Browse All</a>
+</p>
+
+{% if recent_videos %}
+<h2>Recently Added</h2>
+<div class="card-grid">
+  {% for v in recent_videos %}
+  <div class="video-card">
+    <h3><a href="/videos/{{ v.id }}">{{ v.title }}</a></h3>
+    <div class="meta">
+      {% if v.date_filmed %}📅 {{ v.date_filmed }}{% endif %}
+      {% if v.place %}&nbsp;· 📍 {{ v.place }}{% endif %}
+      {% if v.reel_number %}&nbsp;· 🎞 Reel {{ v.reel_number }}{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p><em>No films yet — <a href="/videos/upload">upload the first one</a>.</em></p>
+{% endif %}
+{% endblock %}

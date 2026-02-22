@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Films — Family Films{% endblock %}
+{% block content %}
+<h1>All Films</h1>
+
+<form>
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:0.75rem; align-items:end;">
+    <label>
+      Search
+      <input type="text" name="q" placeholder="Title, place, description…"
+             hx-get="/videos/search"
+             hx-trigger="input changed delay:300ms, search"
+             hx-target="#search-results"
+             hx-include="[name='person_id'],[name='year']">
+    </label>
+    <label>
+      Person
+      <select name="person_id"
+              hx-get="/videos/search"
+              hx-trigger="change"
+              hx-target="#search-results"
+              hx-include="[name='q'],[name='year']">
+        <option value="">— anyone —</option>
+        {% for p in all_people %}
+        <option value="{{ p.id }}">{{ p.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Year
+      <input type="number" name="year" placeholder="e.g. 1975" min="1900" max="2100"
+             hx-get="/videos/search"
+             hx-trigger="input changed delay:400ms"
+             hx-target="#search-results"
+             hx-include="[name='q'],[name='person_id']">
+    </label>
+    <div>
+      <a href="/videos/upload" role="button">+ Upload</a>
+    </div>
+  </div>
+</form>
+
+<div id="search-results">
+  {% include "videos/search_results.html" %}
+</div>
+{% endblock %}

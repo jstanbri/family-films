@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ person.name }} — Family Films{% endblock %}
+{% block content %}
+<a href="/people">← Back to people</a>
+<h1 style="margin-top:0.5rem;">{{ person.name }}</h1>
+
+<table style="max-width:400px;">
+  <tbody>
+    {% if person.relationship %}
+    <tr><th>Relationship</th><td>{{ person.relationship }}</td></tr>
+    {% endif %}
+    {% if person.date_of_birth %}
+    <tr><th>Date of Birth</th><td>{{ person.date_of_birth }}</td></tr>
+    {% endif %}
+    {% if person.notes %}
+    <tr><th>Notes</th><td>{{ person.notes }}</td></tr>
+    {% endif %}
+  </tbody>
+</table>
+
+<p><a href="/people/{{ person.id }}/edit" role="button" class="secondary">Edit</a></p>
+
+<h2>Films featuring {{ person.name }}</h2>
+{% if videos %}
+<div class="card-grid">
+  {% for v in videos %}
+  <div class="video-card">
+    <h3><a href="/videos/{{ v.id }}">{{ v.title }}</a></h3>
+    <div class="meta">
+      {% if v.date_filmed %}📅 {{ v.date_filmed }}&ensp;{% endif %}
+      {% if v.place %}📍 {{ v.place }}{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p><em>No films tagged with {{ person.name }} yet.</em></p>
+{% endif %}
+{% endblock %}

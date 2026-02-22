@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}People — Family Films{% endblock %}
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:baseline;">
+  <h1>People</h1>
+  <a href="/people/new" role="button">+ Add Person</a>
+</div>
+
+{% if people %}
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Relationship</th>
+      <th>Date of Birth</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in people %}
+    <tr id="person-row-{{ p.id }}">
+      <td><a href="/people/{{ p.id }}">{{ p.name }}</a></td>
+      <td>{{ p.relationship | default("—") }}</td>
+      <td>{{ p.date_of_birth | default("—") }}</td>
+      <td>
+        <a href="/people/{{ p.id }}/edit">Edit</a>
+        &ensp;
+        <a href="#"
+           hx-delete="/people/{{ p.id }}"
+           hx-target="#person-row-{{ p.id }}"
+           hx-swap="outerHTML"
+           hx-confirm="Remove {{ p.name }} from the archive?"
+           style="color:var(--pico-del-color,#c0392b);">Delete</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p><em>No people yet. <a href="/people/new">Add the first one.</a></em></p>
+{% endif %}
+{% endblock %}

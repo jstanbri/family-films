@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit" if person else "New Person" }} — Family Films{% endblock %}
+{% block content %}
+<a href="/people">← Back to people</a>
+<h1 style="margin-top:0.5rem;">{{ "Edit " ~ person.name if person else "Add a Person" }}</h1>
+
+<form
+  {% if person %}
+    action="/people/{{ person.id }}/edit" method="post"
+  {% else %}
+    action="/people/new" method="post"
+  {% endif %}
+  style="max-width:480px;">
+
+  <label>
+    Full Name *
+    <input type="text" name="name" required value="{{ person.name if person else '' }}">
+  </label>
+
+  <label>
+    Relationship
+    <input type="text" name="relationship"
+           placeholder="e.g. Father, Aunt, Family friend"
+           value="{{ person.relationship if person else '' }}">
+  </label>
+
+  <label>
+    Date of Birth
+    <input type="date" name="date_of_birth"
+           value="{{ person.date_of_birth if person else '' }}">
+  </label>
+
+  <label>
+    Notes
+    <textarea name="notes" rows="3"
+              placeholder="Any other notes about this person">{{ person.notes if person else '' }}</textarea>
+  </label>
+
+  <button type="submit">{{ "Save Changes" if person else "Add Person" }}</button>
+</form>
+{% endblock %}

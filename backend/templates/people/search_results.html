@@ -1,0 +1,8 @@
+{% for p in people %}
+<label style="display:flex; gap:0.5rem; align-items:center; margin-bottom:0.3rem;">
+  <input type="checkbox" name="person_ids" value="{{ p.id }}">
+  {{ p.name }}{% if p.relationship %} <span class="tag">{{ p.relationship }}</span>{% endif %}
+</label>
+{% else %}
+<p><em>No matching people.</em></p>
+{% endfor %}
