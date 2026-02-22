@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Edit — {{ video.title }} — Family Films{% endblock %}
+{% block content %}
+<a href="/videos/{{ video.id }}">← Back to film</a>
+<h1 style="margin-top:0.5rem;">Edit: {{ video.title }}</h1>
+
+<form action="/videos/{{ video.id }}/edit" method="post"
+      enctype="multipart/form-data" style="max-width:640px;">
+
+  <label>
+    Title *
+    <input type="text" name="title" required value="{{ video.title }}">
+  </label>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+    <label>
+      Date Filmed
+      <input type="date" name="date_filmed" value="{{ video.date_filmed | default('') }}">
+    </label>
+    <label>
+      Reel / Tape Number
+      <input type="text" name="reel_number" value="{{ video.reel_number | default('') }}">
+    </label>
+  </div>
+
+  <label>
+    Place
+    <input type="text" name="place" value="{{ video.place | default('') }}">
+  </label>
+
+  <label>
+    Description
+    <textarea name="description" rows="3">{{ video.description | default('') }}</textarea>
+  </label>
+
+  <label>
+    Digitised by
+    <input type="text" name="digitised_by" value="{{ video.digitised_by | default('') }}">
+  </label>
+
+  <fieldset>
+    <legend>People in this film</legend>
+    <input type="search" placeholder="Search people…"
+           hx-get="/people/search"
+           hx-trigger="input changed delay:300ms"
+           hx-target="#people-results">
+    <div id="people-results" style="margin-top:0.5rem;">
+      {% for p in all_people %}
+      <label style="display:flex; gap:0.5rem; align-items:center; margin-bottom:0.3rem;">
+        <input type="checkbox" name="person_ids" value="{{ p.id }}"
+               {% if p.id in tagged_id_strings %}checked{% endif %}>
+        {{ p.name }}{% if p.relationship %} <span class="tag">{{ p.relationship }}</span>{% endif %}
+      </label>
+      {% endfor %}
+    </div>
+    <small><a href="/people/new" target="_blank">+ Add a new person</a></small>
+  </fieldset>
+
+  <button type="submit">Save Changes</button>
+</form>
+{% endblock %}
