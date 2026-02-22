@@ -304,6 +304,128 @@ pub async fn stream_video(
     Ok((headers, body))
 }
 
+// ── Edit video form ───────────────────────────────────────────────────────────
+
+pub async fn edit_video_form(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Html<String>, StatusCode> {
+    let video = sqlx::query_as::<_, Video>(
+        r#"SELECT id, title, filename, date_filmed, place, description,
+                  reel_number, digitised_by, duration_secs, file_size,
+                  created_at, updated_at
+           FROM videos WHERE id = $1"#
+    )
+    .bind(id)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    .ok_or(StatusCode::NOT_FOUND)?;
+
+    let all_people = sqlx::query_as::<_, Person>(
+        "SELECT id, name, relationship, date_of_birth, notes, created_at FROM people ORDER BY name"
+    )
+    .fetch_all(&state.db)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // People already tagged on this video
+    let tagged_ids: Vec<Uuid> = sqlx::query_as::<_, (Uuid,)>(
+        "SELECT person_id FROM video_people WHERE video_id = $1"
+    )
+    .bind(id)
+    .fetch_all(&state.db)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    .into_iter()
+    .map(|(id,)| id)
+    .collect();
+
+    // Convert to strings for easy comparison in template
+    let tagged_id_strings: Vec<String> = tagged_ids.iter().map(|u| u.to_string()).collect();
+
+    let tmpl = state.templates.get_template("videos/edit.html")
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let html = tmpl.render(minijinja::context! { video, all_people, tagged_id_strings })
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Html(html))
+}
+
+// ── Update video metadata ─────────────────────────────────────────────────────
+
+pub async fn update_video(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+    mut multipart: Multipart,
+) -> Result<Redirect, (StatusCode, String)> {
+    let mut title = String::new();
+    let mut date_filmed: Option<String> = None;
+    let mut place: Option<String> = None;
+    let mut description: Option<String> = None;
+    let mut reel_number: Option<String> = None;
+    let mut digitised_by: Option<String> = None;
+    let mut person_ids: Vec<String> = Vec::new();
+
+    while let Some(field) = multipart.next_field().await.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))? {
+        let name = field.name().unwrap_or("").to_string();
+        match name.as_str() {
+            "title"        => title = field.text().await.unwrap_or_default(),
+            "date_filmed"  => date_filmed = Some(field.text().await.unwrap_or_default()),
+            "place"        => place = Some(field.text().await.unwrap_or_default()),
+            "description"  => description = Some(field.text().await.unwrap_or_default()),
+            "reel_number"  => reel_number = Some(field.text().await.unwrap_or_default()),
+            "digitised_by" => digitised_by = Some(field.text().await.unwrap_or_default()),
+            "person_ids"   => {
+                let val = field.text().await.unwrap_or_default();
+                if !val.is_empty() { person_ids.push(val); }
+            }
+            _ => {}
+        }
+    }
+
+    let dob = date_filmed
+        .filter(|s| !s.is_empty())
+        .map(|s| chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d"))
+        .transpose()
+        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid date".into()))?;
+
+    sqlx::query(
+        r#"UPDATE videos SET title=$1, date_filmed=$2, place=$3, description=$4,
+           reel_number=$5, digitised_by=$6 WHERE id=$7"#
+    )
+    .bind(&title)
+    .bind(dob)
+    .bind(place.filter(|s| !s.is_empty()))
+    .bind(description.filter(|s| !s.is_empty()))
+    .bind(reel_number.filter(|s| !s.is_empty()))
+    .bind(digitised_by.filter(|s| !s.is_empty()))
+    .bind(id)
+    .execute(&state.db)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // Replace all people tags
+    sqlx::query("DELETE FROM video_people WHERE video_id = $1")
+        .bind(id)
+        .execute(&state.db)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    for pid_str in person_ids {
+        if let Ok(pid) = Uuid::parse_str(&pid_str) {
+            let _ = sqlx::query(
+                "INSERT INTO video_people (video_id, person_id) VALUES ($1, $2) ON CONFLICT DO NOTHING"
+            )
+            .bind(id)
+            .bind(pid)
+            .execute(&state.db)
+            .await;
+        }
+    }
+
+    Ok(Redirect::to(&format!("/videos/{}", id)))
+}
+
 // ── Delete video ──────────────────────────────────────────────────────────────
 
 pub async fn delete_video(

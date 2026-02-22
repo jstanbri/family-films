@@ -48,13 +48,6 @@ pub struct Video {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct VideoDetail {
-    #[serde(flatten)]
-    pub video: Video,
-    pub people: Vec<Person>,
-}
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SearchParams {

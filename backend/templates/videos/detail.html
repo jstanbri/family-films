@@ -50,7 +50,8 @@
   </div>
 </div>
 
-<div style="margin-top:2rem;">
+<div style="margin-top:2rem; display:flex; gap:1rem; align-items:center;">
+  <a href="/videos/{{ video.id }}/edit" role="button" class="secondary">✏️ Edit details</a>
   <button class="delete-btn"
           hx-delete="/videos/{{ video.id }}"
           hx-confirm="Delete '{{ video.title }}' permanently? The file will also be removed."
