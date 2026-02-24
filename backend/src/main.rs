@@ -4,7 +4,7 @@ mod models;
 mod state;
 
 use axum::{
-    routing::{delete, get},
+    routing::get,
     Router,
     extract::DefaultBodyLimit,
 };

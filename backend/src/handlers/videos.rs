@@ -5,9 +5,11 @@ use axum::{
     body::Body,
 };
 use tokio::fs::File;
+use tokio::io::{AsyncSeekExt, AsyncReadExt};
 use tokio_util::io::ReaderStream;
 use uuid::Uuid;
 use std::path::PathBuf;
+use std::io::SeekFrom;
 
 use crate::state::AppState;
 use crate::models::{SearchParams, Video, Person};
@@ -274,6 +276,7 @@ pub async fn video_detail(
 pub async fn stream_video(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
+    req_headers: HeaderMap,
 ) -> Result<impl IntoResponse, StatusCode> {
     let row: Option<(String,)> = sqlx::query_as("SELECT filename FROM videos WHERE id = $1")
         .bind(id)
@@ -283,10 +286,6 @@ pub async fn stream_video(
 
     let filename = row.ok_or(StatusCode::NOT_FOUND)?.0;
     let path = PathBuf::from(&state.videos_dir).join(&filename);
-
-    let file = File::open(&path).await.map_err(|_| StatusCode::NOT_FOUND)?;
-    let stream = ReaderStream::new(file);
-    let body = Body::from_stream(stream);
 
     let ext = std::path::Path::new(&filename)
         .extension().and_then(|e| e.to_str()).unwrap_or("mp4");
@@ -298,10 +297,49 @@ pub async fn stream_video(
         _      => "application/octet-stream",
     };
 
+    let file_size = tokio::fs::metadata(&path).await.map_err(|_| StatusCode::NOT_FOUND)?.len();
+
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, content_type.parse().unwrap());
     headers.insert(header::ACCEPT_RANGES, "bytes".parse().unwrap());
-    Ok((headers, body))
+
+    // Parse Range header: "bytes=<start>-<end>" or "bytes=<start>-"
+    if let Some(range_val) = req_headers.get(header::RANGE).and_then(|v| v.to_str().ok()) {
+        if let Some(byte_range) = range_val.strip_prefix("bytes=") {
+            let mut parts = byte_range.splitn(2, '-');
+            let start: Option<u64> = parts.next().and_then(|s| s.parse().ok());
+            let end_raw: Option<u64> = parts.next().and_then(|s| s.parse().ok());
+
+            if let Some(start) = start {
+                if start >= file_size {
+                    return Err(StatusCode::RANGE_NOT_SATISFIABLE);
+                }
+                let end = end_raw.unwrap_or(file_size - 1).min(file_size - 1);
+                let chunk_len = end - start + 1;
+
+                let mut file = File::open(&path).await.map_err(|_| StatusCode::NOT_FOUND)?;
+                file.seek(SeekFrom::Start(start)).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+                let stream = ReaderStream::new(file.take(chunk_len));
+                let body = Body::from_stream(stream);
+
+                headers.insert(
+                    header::CONTENT_RANGE,
+                    format!("bytes {}-{}/{}", start, end, file_size).parse().unwrap(),
+                );
+                headers.insert(header::CONTENT_LENGTH, chunk_len.to_string().parse().unwrap());
+
+                return Ok((StatusCode::PARTIAL_CONTENT, headers, body));
+            }
+        }
+    }
+
+    // No Range header — serve full file with Content-Length
+    let file = File::open(&path).await.map_err(|_| StatusCode::NOT_FOUND)?;
+    let stream = ReaderStream::new(file);
+    let body = Body::from_stream(stream);
+    headers.insert(header::CONTENT_LENGTH, file_size.to_string().parse().unwrap());
+
+    Ok((StatusCode::OK, headers, body))
 }
 
 // ── Edit video form ───────────────────────────────────────────────────────────
