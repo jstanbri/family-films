@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /c/Users/james/source/repos/family-films log --oneline -10)",
+      "Bash(git -C /c/Users/james/source/repos/family-films show dc8964a --stat)",
+      "Bash(git -C /c/Users/james/source/repos/family-films show 35e4133 --stat)"
+    ]
+  }
+}

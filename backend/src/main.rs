@@ -7,10 +7,11 @@ use axum::{
     routing::get,
     Router,
     extract::DefaultBodyLimit,
+    http::HeaderValue,
 };
 use minijinja::Environment;
 use std::sync::Arc;
-use tower_http::{cors::CorsLayer, trace::TraceLayer};
+use tower_http::{cors::CorsLayer, set_header::SetResponseHeaderLayer, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use state::AppState;
@@ -70,6 +71,10 @@ async fn main() -> anyhow::Result<()> {
         .route("/people/search",   get(handlers::people::search_people_partial))
         .route("/people/:id",      get(handlers::people::person_detail).delete(handlers::people::delete_person))
         .route("/people/:id/edit", get(handlers::people::edit_person_form).post(handlers::people::update_person))
+        .layer(SetResponseHeaderLayer::if_not_present(
+            axum::http::header::HeaderName::from_static("ngrok-skip-browser-warning"),
+            HeaderValue::from_static("true"),
+        ))
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http())
         .with_state(state);
